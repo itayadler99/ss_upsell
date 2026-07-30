@@ -1,0 +1,7 @@
+api_version = "2025-07"
+
+[[extensions]]
+name = "SneakerStudio Post Purchase"
+handle = "pp-upsell"
+uid = "5f2cf042-c28a-f0cf-cf59-922457941d0c31a7475a"
+type = "checkout_post_purchase"

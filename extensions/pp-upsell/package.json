@@ -1,0 +1,9 @@
+{
+  "name": "pp-upsell",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^17.0.2",
+    "@shopify/post-purchase-ui-extensions-react": "^0.13.3"
+  }
+}
