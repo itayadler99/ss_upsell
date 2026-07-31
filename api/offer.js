@@ -1,4 +1,4 @@
-const { buildOffer, json } = require('../lib/offer');
+const { buildOffer, json, alert } = require('../lib/offer');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 200, {});
@@ -10,7 +10,15 @@ module.exports = async (req, res) => {
 
     const offer = await buildOffer(token, process.env.SHOPIFY_API_SECRET);
     if (!offer) return json(res, 200, { render: false });
-    return json(res, 200, { render: true, offer });
+    json(res, 200, { render: true, offer });
+    // After the response, so the buyer never waits on Telegram.
+    await alert(
+      `👀 SneakerStudio אפסייל: המסך הוצג ללקוח\n` +
+        `${offer.productTitle} מידה ${offer.variantTitle}\n` +
+        `${offer.originalPrice} ₪ ⟵ ${offer.discountedPrice} ₪\n` +
+        `הזמנה ${offer.referenceId}`
+    );
+    return;
   } catch (e) {
     return json(res, 200, { render: false, error: String(e.message || e) });
   }

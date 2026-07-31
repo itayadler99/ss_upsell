@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { buildOffer, json, DISCOUNT_PCT } = require('../lib/offer');
+const { buildOffer, json, alert, DISCOUNT_PCT } = require('../lib/offer');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 200, {});
@@ -45,7 +45,15 @@ module.exports = async (req, res) => {
       secret
     );
 
-    return json(res, 200, { token: signed });
+    json(res, 200, { token: signed });
+    const picked = offer.variants.find((v) => String(v.id) === String(variantId));
+    await alert(
+      `🎉 SneakerStudio אפסייל: לקוח לחץ הוסיפו להזמנה\n` +
+        `${offer.productTitle} מידה ${picked.title}\n` +
+        `${picked.price} ₪ ⟵ ${Math.round(picked.price * (100 - DISCOUNT_PCT)) / 100} ₪\n` +
+        `הזמנה ${referenceId}`
+    );
+    return;
   } catch (e) {
     return json(res, 401, { error: String(e.message || e) });
   }
