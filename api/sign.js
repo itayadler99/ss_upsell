@@ -45,15 +45,15 @@ module.exports = async (req, res) => {
       secret
     );
 
-    json(res, 200, { token: signed });
     const picked = offer.variants.find((v) => String(v.id) === String(variantId));
+    console.log(`[sign] accepted ${offer.productTitle} ${picked.title}`);
+    // Awaited before the response for the same reason as in api/offer.js.
     await alert(
       `🎉 SneakerStudio אפסייל: לקוח לחץ הוסיפו להזמנה\n` +
         `${offer.productTitle} מידה ${picked.title}\n` +
-        `${picked.price} ₪ ⟵ ${Math.round(picked.price * (100 - DISCOUNT_PCT)) / 100} ₪\n` +
-        `הזמנה ${referenceId}`
+        `${picked.price} ₪ ⟵ ${Math.round(picked.price * (100 - DISCOUNT_PCT)) / 100} ₪`
     );
-    return;
+    return json(res, 200, { token: signed });
   } catch (e) {
     return json(res, 401, { error: String(e.message || e) });
   }
