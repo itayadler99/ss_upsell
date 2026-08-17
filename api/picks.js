@@ -14,11 +14,22 @@ function esc(s) {
   }[c]));
 }
 
+// A row only counts when a real product was chosen; "none" is an open question, not an
+// answer, and a size without a model cannot be turned into an offer either.
+function done(picks) {
+  return Object.values(picks).filter((p) => p.productId && p.productId !== 'none').length;
+}
+
+function sized(picks) {
+  return Object.values(picks).filter((p) => p.size).length;
+}
+
 function page(picks, key) {
   const rows = ROWS.map((r) => {
     const saved = picks[r.key] || {};
     const chosen = saved.productId || '';
     const size = saved.size || '';
+    const note = saved.note || '';
 
     const cards = r.options
       .map((o) => {
@@ -37,8 +48,9 @@ function page(picks, key) {
 
     const none = chosen === 'none';
     return (
-      `<section class="row">` +
+      `<section class="row${r.redo ? ' redo' : ''}">` +
       `<div class="head"><span class="n">${esc(r.key)}</span>` +
+      (r.redo ? `<span class="tag">דגמים חדשים</span>` : '') +
       `<input class="size" name="s_${esc(r.key)}" value="${esc(size)}" placeholder="מידה" inputmode="decimal">` +
       (r.note ? `<span class="note">${esc(r.note)}</span>` : '') +
       `</div>` +
@@ -48,8 +60,10 @@ function page(picks, key) {
       `<label class="opt none${none ? ' on' : ''}">` +
       `<input type="radio" name="p_${esc(r.key)}" value="none"${none ? ' checked' : ''}>` +
       `<span class="ot">אף אחד מאלה</span>` +
-      `<span class="om">אכתוב לך את הדגם</span></label>` +
-      `</div></div></section>`
+      `<span class="om">אכתוב לי מה הדגם</span></label>` +
+      `</div></div>` +
+      `<input class="txt" name="n_${esc(r.key)}" value="${esc(note)}" placeholder="הערה חופשית - שם הדגם או כל דבר שאני צריך לדעת">` +
+      `</section>`
     );
   }).join('');
 
@@ -64,6 +78,9 @@ function page(picks, key) {
     `.n{font-size:22px;font-weight:800;color:#bbb}` +
     `input.size{width:96px;padding:9px;font-size:17px;border:2px solid #111;border-radius:8px;text-align:center}` +
     `.note{background:#fff8e1;border:1px solid #efd489;border-radius:6px;padding:5px 8px;font-size:13px}` +
+    `.row.redo{border:2px solid #0b6bcb}` +
+    `.tag{background:#0b6bcb;color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:700}` +
+    `input.txt{width:100%;box-sizing:border-box;margin-top:10px;padding:9px;font-size:15px;border:1px solid #ccc;border-radius:8px}` +
     `.body{display:flex;gap:10px;align-items:flex-start}` +
     `a.zoom{flex:0 0 auto;position:sticky;top:8px;text-decoration:none;text-align:center;display:block}` +
     `a.zoom span{display:block;font-size:12px;color:#0b6bcb;margin-top:3px}` +
@@ -81,10 +98,10 @@ function page(picks, key) {
     `.bar span{color:#fff;font-size:13px}` +
     `</style>` +
     `<h2>מלאי בית - 18 זוגות חדשים</h2>` +
-    `<p class="sub">בכל שורה: התמונה ששלחת, ולידה כל הדגמים הדומים באתר. תסמן את הנכון ותכתוב מידה.</p>` +
+    `<p class="sub">6 השורות עם מסגרת כחולה קיבלו דגמים חדשים אחרי שסימנת "אף אחד". השאר כבר מסומן - חסרות רק המידות.</p>` +
     `<form method="post" action="/api/picks?key=${encodeURIComponent(key)}">` +
     rows +
-    `<div class="bar"><span>${Object.keys(picks).length}/18 נשמרו</span><button>שמור</button></div>` +
+    `<div class="bar"><span>${done(picks)} דגם · ${sized(picks)} מידה · מתוך 18</span><button>שמור</button></div>` +
     `</form>`
   );
 }
@@ -103,7 +120,8 @@ module.exports = async (req, res) => {
       for (const r of ROWS) {
         const pid = body[`p_${r.key}`];
         const size = String(body[`s_${r.key}`] || '').trim();
-        if (!pid && !size) continue;
+        const note = String(body[`n_${r.key}`] || '').trim();
+        if (!pid && !size && !note) continue;
         const opt = r.options.find((o) => o.id === pid);
         picks[r.key] = {
           productId: pid || null,
@@ -111,6 +129,7 @@ module.exports = async (req, res) => {
           handle: opt ? opt.handle : null,
           studioId: opt ? opt.studioId : null,
           size,
+          note,
           at: new Date().toISOString(),
         };
       }
