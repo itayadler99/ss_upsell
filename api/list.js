@@ -46,8 +46,8 @@ function sizeNote(pair) {
   const odd = titles.filter((t) => t !== String(pair.size) && t !== String(Number(pair.size)));
   if (!odd.length) return '';
   return (
-    `<div class="tip">בחנות המידה נקראת <b>${odd.map(esc).join(' / ')}</b> ` +
-    `- הדגם נמכר בשלישים ולא בחצאים, וזו המידה הקרובה שקיימת</div>`
+    `<div class="tip">בחנות המידה רשומה <b>${odd.map(esc).join(' / ')}</b>, ` +
+    `אבל ללקוח מוצגת המידה שהוא ביקש - בלי שברים. בטלגרם שאתה מקבל תראה את המידה שעל הקופסה.</div>`
   );
 }
 
