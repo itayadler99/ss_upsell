@@ -17,10 +17,12 @@ const HOME_DISCOUNT_TITLE = stock.HOME_DISCOUNT_TITLE;
 // overlapping window is a repeat of a real problem.
 const SECOND_PAIR_TITLE = 'הנחת זוג שני';
 const WINDOW_HOURS = 25;
-// A store that keeps taking orders but has not rendered the offer for two days has
-// almost certainly had its Post-purchase page switched away from our app. That setting
-// lives in the admin UI and no API can read it back, so this is the only way to see it.
-const DARK_MS = 48 * 3600 * 1000;
+// A store that keeps taking orders but has not rendered the offer for a full day has
+// almost certainly had its Post-purchase page switched away from our app - or is taking
+// its money through a gateway Shopify will not show a post-purchase page for at all.
+// Neither is readable through any API, so a day of orders with zero renders is the only
+// evidence available. Station alone books several orders a day, so 24h is not a fluke.
+const DARK_MS = 24 * 3600 * 1000;
 
 async function ordersSince(cfg, sinceIso, fields) {
   const r = await fetch(
@@ -100,7 +102,9 @@ async function darkShops() {
     if (Date.now() - last < DARK_MS) continue;
     try {
       const recent = await ordersSince(cfg, since, 'id');
-      if (recent.length) out.push(`${cfg.name}: הזמנות נכנסות אבל 0 הצגות ב-48 שעות`);
+      if (recent.length) {
+        out.push(`${cfg.name}: ${recent.length} הזמנות ב-24 שעות, 0 הצגות של המסך`);
+      }
     } catch (e) {
       // Covered by the token failure alert below.
     }
@@ -147,9 +151,10 @@ module.exports = async (req, res) => {
   const dark = await darkShops();
   if (dark.length) {
     await alert(
-      '🔴 המסך של האפסייל הפסיק להופיע:\n' +
+      '🔴 המסך של האפסייל לא מוצג:\n' +
         dark.join('\n') +
-        '\nלבדוק בשופיפיי: Settings ⟶ Checkout ⟶ Post-purchase page.'
+        '\n1. Settings ⟶ Checkout ⟶ Post-purchase page - לוודא שהאפליקציה שלנו נבחרה.' +
+        '\n2. אם כן נבחרה: שופיפיי לא מציגה מסך אחרי תשלום כשהסליקה מפנה לאתר חיצוני. כל ההזמנות עוברות ב-PayPlus.'
     );
   }
 
