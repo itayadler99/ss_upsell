@@ -98,8 +98,8 @@ function page(picks, key) {
     `.bar span{color:#fff;font-size:13px}` +
     `</style>` +
     `<h2>מלאי בית - 18 זוגות חדשים</h2>` +
-    `<p class="sub">16 מ-18 הדגמים סגורים. 10 ו-12 עוד פתוחים - קרא את ההערה בשורה שלהם. ` +
-    `מה שחוסם עכשיו זה המידות: אין אף מידה שמורה, וצריך אחת לכל זוג.</p>` +
+    `<p class="sub">כל 18 הזוגות סגורים - דגם ומידה - וכולם באוויר בשתי החנויות. ` +
+    `העמוד נשאר כדי לתקן דגם או מידה אם משהו לא מדויק.</p>` +
     `<form method="post" action="/api/picks?key=${encodeURIComponent(key)}">` +
     rows +
     `<div class="bar"><span>${done(picks)} דגם · ${sized(picks)} מידה · מתוך 18</span><button>שמור</button></div>` +
