@@ -98,7 +98,8 @@ function page(picks, key) {
     `.bar span{color:#fff;font-size:13px}` +
     `</style>` +
     `<h2>מלאי בית - 18 זוגות חדשים</h2>` +
-    `<p class="sub">6 השורות עם מסגרת כחולה קיבלו דגמים חדשים אחרי שסימנת "אף אחד". השאר כבר מסומן - חסרות רק המידות.</p>` +
+    `<p class="sub">16 מ-18 הדגמים סגורים. 10 ו-12 עוד פתוחים - קרא את ההערה בשורה שלהם. ` +
+    `מה שחוסם עכשיו זה המידות: אין אף מידה שמורה, וצריך אחת לכל זוג.</p>` +
     `<form method="post" action="/api/picks?key=${encodeURIComponent(key)}">` +
     rows +
     `<div class="bar"><span>${done(picks)} דגם · ${sized(picks)} מידה · מתוך 18</span><button>שמור</button></div>` +
