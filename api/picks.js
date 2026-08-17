@@ -99,7 +99,8 @@ function page(picks, key) {
     `</style>` +
     `<h2>מלאי בית - 18 זוגות חדשים</h2>` +
     `<p class="sub">כל 18 הזוגות סגורים - דגם ומידה - וכולם באוויר בשתי החנויות. ` +
-    `העמוד נשאר כדי לתקן דגם או מידה אם משהו לא מדויק.</p>` +
+    `העמוד נשאר כדי לתקן דגם או מידה אם משהו לא מדויק. ` +
+    `<a href="/api/list?key=${encodeURIComponent(key)}">לרשימה של כל 31 הזוגות</a></p>` +
     `<form method="post" action="/api/picks?key=${encodeURIComponent(key)}">` +
     rows +
     `<div class="bar"><span>${done(picks)} דגם · ${sized(picks)} מידה · מתוך 18</span><button>שמור</button></div>` +
