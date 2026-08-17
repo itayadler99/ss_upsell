@@ -50,7 +50,11 @@ function shopCell(label, sh, live, pair) {
     if (v.title !== sh.variantTitle) problems.push(`מידה בחנות ${esc(v.title)}`);
     if (Number(v.price) !== Number(sh.listPrice)) problems.push(`מחיר בחנות ${esc(v.price)}`);
     if (v.product.status !== 'ACTIVE') problems.push(`מוצר ${esc(v.product.status)}`);
-    if (v.product.title !== pair.title) problems.push(`שם בחנות: ${esc(v.product.title)}`);
+    // Capitalisation differs between the two stores on some duplicated products and
+    // means nothing to the buyer; a genuinely different shoe is what has to be caught.
+    if (v.product.title.toLowerCase() !== String(pair.title).toLowerCase()) {
+      problems.push(`שם בחנות: ${esc(v.product.title)}`);
+    }
   }
   const ok = problems.length === 0;
   return (
