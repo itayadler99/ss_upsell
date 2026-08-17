@@ -38,6 +38,19 @@ function thumb(url) {
   return url + (url.includes('?') ? '&' : '?') + 'width=240';
 }
 
+// Adidas sells thirds, so a pair Itay called 37.5 sits on the site as "37 1/3". The
+// offer still matches it, but he has to be able to see that the number he gave and the
+// number the buyer will see are not the same string.
+function sizeNote(pair) {
+  const titles = [...new Set(Object.values(pair.shops).map((s) => s && s.variantTitle).filter(Boolean))];
+  const odd = titles.filter((t) => t !== String(pair.size) && t !== String(Number(pair.size)));
+  if (!odd.length) return '';
+  return (
+    `<div class="tip">בחנות המידה נקראת <b>${odd.map(esc).join(' / ')}</b> ` +
+    `- הדגם נמכר בשלישים ולא בחצאים, וזו המידה הקרובה שקיימת</div>`
+  );
+}
+
 function shopCell(label, sh, live, pair) {
   if (!sh || !sh.variantId) {
     return `<div class="sc bad"><b>${esc(label)}</b> - לא קיים בחנות הזו</div>`;
@@ -88,6 +101,7 @@ function page(rows, sold, counts) {
     `.info{flex:1;min-width:0}` +
     `.t{font-weight:700;font-size:15px;line-height:1.3}` +
     `.sz{display:inline-block;margin:6px 0;background:#111;color:#fff;border-radius:6px;padding:4px 10px;font-size:17px;font-weight:800}` +
+    `.tip{background:#fff8e1;border:1px solid #efd489;border-radius:6px;padding:5px 8px;font-size:12px;margin-top:4px}` +
     `.sc{font-size:13px;border-radius:7px;padding:6px 8px;margin-top:5px}` +
     `.sc.ok{background:#f1fbf4;border:1px solid #bfe7cd}` +
     `.sc.bad{background:#fff2f2;border:1px solid #f0b4b4}` +
@@ -154,6 +168,7 @@ module.exports = async (req, res) => {
         (isSold ? `<span class="soldtag">נמכר</span> ` : '') +
         `<div class="t">${esc(p.title)}</div>` +
         `<span class="sz">מידה ${esc(p.size)}</span>` +
+        sizeNote(p) +
         station +
         studio +
         `</div></section>`
