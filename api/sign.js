@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
       if (new Set(wanted).size !== wanted.length) return json(res, 403, { error: 'duplicate pair' });
 
       // Only pairs this buyer was actually shown, so nobody can name a different
-      // shoe and get it for 249.
+      // shoe and get it at the home price.
       const picked = wanted.map((id) => offer.items.find((it) => it.id === id));
       if (picked.some((p) => !p)) return json(res, 403, { error: 'pair not offered' });
 

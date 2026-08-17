@@ -9,7 +9,7 @@ const HOME_DISCOUNT_TITLE = stock.HOME_DISCOUNT_TITLE;
 // The live alerts in api/offer.js and api/sign.js say what happened on the screen. This
 // says what happened in the till: it reads finished orders on both stores and checks
 // that every accepted upsell really was charged what the screen promised - 65% of list
-// for the catalogue offer, a flat 249 or 419 for the pairs from Itay's home. It ran on a
+// for the catalogue offer, the flat home price for the pairs from Itay's home. It ran on a
 // laptop first and went silent the moment the machine slept, which is the exact failure
 // a monitor exists to prevent.
 //
@@ -49,7 +49,7 @@ function upsellLines(order) {
   return out;
 }
 
-// Home-stock lines are priced per order, not per line: one pair is 249, two are 419.
+// Home-stock lines are priced per order, not per line: ONE_PAIR_PRICE for one, TWO_PAIR_PRICE for two.
 function checkOrder(order, name) {
   const lines = upsellLines(order);
   if (!lines.length) return { accepted: 0, bad: [] };
