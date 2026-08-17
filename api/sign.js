@@ -49,7 +49,9 @@ module.exports = async (req, res) => {
       const total = pairs === 2 ? offer.twoPairPrice : offer.onePairPrice;
       summary =
         `🎉 ${offer.shop} מלאי בית: לקוח הוסיף להזמנה\n` +
-        picked.map((p) => `${p.title} מידה ${p.variantTitle}`).join('\n') +
+        // The size on the box, not the rounded one the buyer saw, because this is the
+        // message Itay ships from.
+        picked.map((p) => `${p.title} מידה ${p.boxSize || p.variantTitle}`).join('\n') +
         `\nסה"כ ${total} ₪`;
     } else {
       // The client picks a size, but only from the variants we actually offered.
