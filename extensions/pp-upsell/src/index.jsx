@@ -124,8 +124,8 @@ function HomeStock({ input, offer }) {
   }
 
   const banner = first.halfUp
-    ? `נשאר לנו זוג אחד בחצי מידה מעל שלך (${first.variantTitle})`
-    : `נשאר לנו זוג אחד במידה ${first.variantTitle}`;
+    ? `נשאר לנו זוג אחד בחצי מידה מעל שלך (${first.displaySize})`
+    : `נשאר לנו זוג אחד במידה ${first.displaySize}`;
 
   return (
     <BlockStack spacing="loose">
@@ -153,7 +153,7 @@ function HomeStock({ input, offer }) {
           <TextContainer>
             <Heading>{first.title}</Heading>
             <TextBlock subdued size="small">
-              מידה {first.variantTitle}
+              מידה {first.displaySize}
             </TextBlock>
           </TextContainer>
 
@@ -163,7 +163,7 @@ function HomeStock({ input, offer }) {
               value={String(firstId)}
               onChange={(v) => setFirstId(v)}
               options={items.map((i) => ({
-                label: `${i.title} · מידה ${i.variantTitle}`,
+                label: `${i.title} · מידה ${i.displaySize}`,
                 value: String(i.id),
               }))}
             />
@@ -176,7 +176,7 @@ function HomeStock({ input, offer }) {
               onChange={(v) => setSecondId(v)}
               options={[{ label: 'בלי זוג שני', value: 'none' }].concat(
                 secondOptions.map((i) => ({
-                  label: `${i.title} · מידה ${i.variantTitle}`,
+                  label: `${i.title} · מידה ${i.displaySize}`,
                   value: String(i.id),
                 }))
               )}

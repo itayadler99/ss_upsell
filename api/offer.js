@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
 
     const shown =
       offer.kind === 'homestock'
-        ? `${offer.items[0].title} מידה ${offer.items[0].variantTitle}${offer.items[0].halfUp ? ' (חצי מידה מעל)' : ''}` +
+        ? `${offer.items[0].title} מידה ${offer.items[0].displaySize}${offer.items[0].halfUp ? ' (חצי מידה מעל)' : ''}` +
           ` · ${offer.items.length} זוגות זמינים · ${offer.onePairPrice} ₪`
         : `${offer.productTitle} מידה ${offer.variantTitle} · ${offer.originalPrice} ₪ ⟵ ${offer.discountedPrice} ₪`;
 
