@@ -8,11 +8,19 @@ module.exports = async (req, res) => {
     res.status(400).send('missing or invalid shop');
     return;
   }
+  // Station has its own app: the Studio app belongs to another organisation and
+  // its grant screen refuses to load for a store outside it.
+  const STATION = 'j001wn-ec.myshopify.com';
+  const clientId =
+    shop === STATION && process.env.SHOPIFY_API_KEY_STATION
+      ? process.env.SHOPIFY_API_KEY_STATION
+      : process.env.SHOPIFY_API_KEY;
+
   const state = crypto.randomBytes(16).toString('hex');
   const redirectUri = `https://${req.headers.host}/api/callback`;
   const url =
     `https://${shop}/admin/oauth/authorize` +
-    `?client_id=${process.env.SHOPIFY_API_KEY}` +
+    `?client_id=${clientId}` +
     `&scope=${encodeURIComponent(SCOPES)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&state=${state}`;

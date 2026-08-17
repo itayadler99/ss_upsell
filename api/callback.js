@@ -16,11 +16,21 @@ function validHmac(query, secret) {
   }
 }
 
+// Studio and Station each have their own app, so the redirect can be signed with
+// either secret. The one that validates is the one the token exchange must use.
+function credFor(query) {
+  const pairs = [
+    { key: process.env.SHOPIFY_API_KEY, secret: process.env.SHOPIFY_API_SECRET },
+    { key: process.env.SHOPIFY_API_KEY_STATION, secret: process.env.SHOPIFY_API_SECRET_STATION },
+  ].filter((c) => c.key && c.secret);
+  return pairs.find((c) => validHmac(query, c.secret)) || null;
+}
+
 module.exports = async (req, res) => {
   const q = req.query || {};
-  const secret = process.env.SHOPIFY_API_SECRET;
+  const cred = credFor(q);
 
-  if (!validHmac(q, secret)) {
+  if (!cred) {
     res.status(401).send('bad hmac');
     return;
   }
@@ -33,8 +43,8 @@ module.exports = async (req, res) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      client_id: process.env.SHOPIFY_API_KEY,
-      client_secret: secret,
+      client_id: cred.key,
+      client_secret: cred.secret,
       code: q.code,
     }),
   });

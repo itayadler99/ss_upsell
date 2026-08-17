@@ -1,0 +1,15 @@
+name = "SneakerStation Upsell"
+client_id = "0f9d19b6fe04beba16ee1730d6742ef7"
+application_url = "https://ss-upsell.vercel.app/api/auth"
+embedded = false
+
+[access_scopes]
+scopes = "read_products,read_orders"
+
+[auth]
+redirect_urls = [ "https://ss-upsell.vercel.app/api/callback" ]
+
+[webhooks]
+api_version = "2025-07"
+
+[build]

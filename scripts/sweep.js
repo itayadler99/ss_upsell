@@ -1,7 +1,7 @@
 // Dry-run the live offer engine against a large slice of the real catalogue,
 // so a broken price is caught here instead of on a paying customer's screen.
 const jwt = require('jsonwebtoken');
-const { buildOffer } = require('../lib/offer');
+const { buildOffer, verify } = require('../lib/offer');
 
 const SECRET = process.env.SHOPIFY_API_SECRET;
 const CONCURRENCY = 2;
@@ -66,7 +66,7 @@ async function main() {
       if (price < 200 || price >= 700) continue;
       try {
         await new Promise((r) => setTimeout(r, 700));
-        const o = await buildOffer(token(p, v, price.toFixed(2)), SECRET);
+        const o = await buildOffer(verify(token(p, v, price.toFixed(2))).payload);
         rows.push({ bought: p.title, boughtPrice: price, size: v.title, o });
       } catch (e) {
         rows.push({ bought: p.title, boughtPrice: price, size: v.title, err: String(e.message || e) });
