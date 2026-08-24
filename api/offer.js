@@ -19,6 +19,26 @@ module.exports = async (req, res) => {
     }
 
     const offer = await buildOffer(payload);
+    const ref =
+      (payload.input_data &&
+        payload.input_data.initialPurchase &&
+        payload.input_data.initialPurchase.referenceId) ||
+      null;
+    // Recorded before the response so a buyer who is shown nothing is counted too -
+    // that row is the difference between "the offer was declined" and "the offer was
+    // never on screen", which no order can tell us afterwards.
+    try {
+      await stock.logEvent({
+        e: 'offer',
+        shop: shopOf(payload),
+        ref,
+        render: Boolean(offer),
+        kind: offer ? offer.kind : null,
+        n: offer && offer.items ? offer.items.length : 0,
+      });
+    } catch (e) {
+      console.log('[offer] event log failed', String(e.message || e));
+    }
     if (!offer) {
       console.log('[offer] render=false');
       return json(res, 200, { render: false });

@@ -5,10 +5,21 @@ const stock = require('../lib/stock');
 
 const HOME_DISCOUNT_TITLE = stock.HOME_DISCOUNT_TITLE;
 
+// Every outcome of the accept button, success or refusal, so a buyer who pressed it
+// and got an error is not indistinguishable from a buyer who never pressed it.
+async function logSign(fields) {
+  try {
+    await stock.logEvent({ e: 'sign', ...fields });
+  } catch (e) {
+    console.log('[sign] event log failed', String(e.message || e));
+  }
+}
+
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 200, {});
   if (req.method !== 'POST') return json(res, 405, {});
 
+  const ref = (req.body || {}).referenceId || null;
   try {
     const { token, referenceId, variantId, stockIds } = req.body || {};
 
@@ -16,8 +27,12 @@ module.exports = async (req, res) => {
     // Verifying it is what stops anyone from minting a discount for themselves.
     const { payload, cred } = verify(token);
     const offer = await buildOffer(payload);
-    if (!offer) return json(res, 403, { error: 'not eligible' });
+    if (!offer) {
+      await logSign({ ref, ok: false, err: 'not eligible' });
+      return json(res, 403, { error: 'not eligible' });
+    }
     if (offer.referenceId !== referenceId) {
+      await logSign({ ref, shop: offer.shop, ok: false, err: 'reference mismatch' });
       return json(res, 401, { error: 'reference mismatch' });
     }
 
@@ -26,14 +41,26 @@ module.exports = async (req, res) => {
 
     if (offer.kind === 'homestock') {
       const wanted = Array.isArray(stockIds) ? stockIds.map(String) : [];
-      if (wanted.length < 1 || wanted.length > 2) return json(res, 403, { error: 'bad selection' });
-      if (wanted.length === 2 && !offer.allowTwo) return json(res, 403, { error: 'two not offered' });
-      if (new Set(wanted).size !== wanted.length) return json(res, 403, { error: 'duplicate pair' });
+      if (wanted.length < 1 || wanted.length > 2) {
+        await logSign({ ref, shop: offer.shop, ok: false, err: 'bad selection' });
+        return json(res, 403, { error: 'bad selection' });
+      }
+      if (wanted.length === 2 && !offer.allowTwo) {
+        await logSign({ ref, shop: offer.shop, ok: false, err: 'two not offered' });
+        return json(res, 403, { error: 'two not offered' });
+      }
+      if (new Set(wanted).size !== wanted.length) {
+        await logSign({ ref, shop: offer.shop, ok: false, err: 'duplicate pair' });
+        return json(res, 403, { error: 'duplicate pair' });
+      }
 
       // Only pairs this buyer was actually shown, so nobody can name a different
       // shoe and get it at the home price.
       const picked = wanted.map((id) => offer.items.find((it) => it.id === id));
-      if (picked.some((p) => !p)) return json(res, 403, { error: 'pair not offered' });
+      if (picked.some((p) => !p)) {
+        await logSign({ ref, shop: offer.shop, ok: false, err: 'pair not offered' });
+        return json(res, 403, { error: 'pair not offered' });
+      }
 
       const pairs = picked.length;
       changes = picked.map((p) => ({
@@ -56,7 +83,10 @@ module.exports = async (req, res) => {
     } else {
       // The client picks a size, but only from the variants we actually offered.
       const allowed = offer.variants.some((v) => String(v.id) === String(variantId));
-      if (!allowed) return json(res, 403, { error: 'variant not offered' });
+      if (!allowed) {
+        await logSign({ ref, shop: offer.shop, ok: false, err: 'variant not offered' });
+        return json(res, 403, { error: 'variant not offered' });
+      }
 
       changes = [
         {
@@ -89,10 +119,12 @@ module.exports = async (req, res) => {
     );
 
     console.log(`[sign] accepted ${offer.kind} ${offer.shop}`);
+    await logSign({ ref, shop: offer.shop, ok: true, kind: offer.kind });
     // Awaited before the response for the same reason as in api/offer.js.
     await alert(summary);
     return json(res, 200, { token: signed });
   } catch (e) {
+    await logSign({ ref, ok: false, err: String(e.message || e).slice(0, 120) });
     return json(res, 401, { error: String(e.message || e) });
   }
 };
