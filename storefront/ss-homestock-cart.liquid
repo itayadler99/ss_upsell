@@ -1,0 +1,314 @@
+{%- comment -%}
+  ITAY-OVERRIDE: ss-homestock-cart (2026-09-10)
+
+  למה זה קיים:
+  מסך ה-post-purchase (אפליקציית ss_upsell) לא מוצג לקונים. שופיפיי מציגה אותו רק כשהכרטיס
+  נשמר אצלה (Shopify Payments), וכל 156 ההזמנות ב-30 יום עברו ב-PayPlus. הראיה: 298 קריאות
+  ל-/api/offer ב-9 ימים, 0 קליקים, ואפס hits על ביקון הרינדור (/api/px). הקוד רץ, הלקוח לא ראה.
+
+  מה זה עושה במקום:
+  מציע את אותם זוגות מהבית (קולקציית "אאוטלט", תגית Home) בתוך מגירת Kaching -
+  לפני התשלום, במידה שכבר בעגלה. אין תלות בסולק.
+
+  המחיר לא כתוב כאן. הוא נשאב מהוריאנט, כי מבצע "2 ב-799" של Kaching לא חל על האאוטלט:
+  זוג קטלוג + זוג בית ב-349 יצא 798 מול 799 - שקל הפרש, אפס סיבה לקחת. ירד ל-299 ב-10.9.
+
+  הסרה: למחוק את הסקשן מ-footer-group.json. הקובץ עצמו לא מזיק בלי הרישום.
+{%- endcomment -%}
+
+{%- liquid
+  assign outlet = collections['אאוטלט']
+-%}
+<script type="application/json" id="ss-homestock-data">
+[
+  {%- assign first = true -%}
+  {%- for product in outlet.products -%}
+    {%- unless product.tags contains 'Home' -%}{%- continue -%}{%- endunless -%}
+    {%- for v in product.variants -%}
+      {%- unless v.available -%}{%- continue -%}{%- endunless -%}
+      {%- unless first -%},{%- endunless -%}{%- assign first = false -%}
+      {
+        "id": {{ v.id }},
+        "size": {{ v.title | json }},
+        "title": {{ product.title | json }},
+        "url": {{ product.url | json }},
+        "price": {{ v.price }},
+        "compare": {{ v.compare_at_price | default: 0 }},
+        "img": {{ product.featured_image | image_url: width: 200 | json }}
+      }
+    {%- endfor -%}
+  {%- endfor -%}
+]
+</script>
+
+<style>
+  .ss-hs { direction: rtl; font-family: inherit; }
+  .ss-hs__title {
+    font-size: 14px; font-weight: 700; color: #111;
+    margin: 0 0 8px; text-align: center; line-height: 1.3;
+  }
+  .ss-hs__title b { color: #b12704; }
+  .ss-hs__row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .ss-hs__card {
+    flex: 0 0 auto; width: 148px; border: 1px solid rgba(0,0,0,.12); border-radius: 10px;
+    padding: 8px; background: #fff; display: flex; flex-direction: column; gap: 6px;
+  }
+  .ss-hs__card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 6px; display: block; }
+  .ss-hs__name {
+    font-size: 11.5px; font-weight: 600; color: #111; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .ss-hs__size { font-size: 11px; color: #444; }
+  .ss-hs__price { font-size: 13px; font-weight: 800; color: #111; }
+  .ss-hs__price s { font-size: 11px; font-weight: 500; color: #888; margin-inline-start: 5px; }
+  .ss-hs__btn {
+    border: 0; border-radius: 999px; background: #111; color: #fff;
+    font-size: 12.5px; font-weight: 700; padding: 8px 6px; cursor: pointer; font-family: inherit;
+  }
+  .ss-hs__btn[disabled] { opacity: .55; cursor: default; }
+  .ss-hs--drawer { padding: 12px 14px; border-top: 1px solid rgba(0,0,0,.08); }
+  .ss-hs--page { max-width: 620px; margin: 18px auto; }
+</style>
+
+<script>
+(function () {
+  var DATA;
+  try {
+    DATA = JSON.parse(document.getElementById('ss-homestock-data').textContent) || [];
+  } catch (e) { return; }
+  if (!DATA.length) return;
+
+  var SHOP = {{ shop.domain | json }};
+  var TAP = 'https://ss-upsell.vercel.app/api/tap';
+  var MAX_CARDS = 3;
+
+  // "37 1/3" -> 37.333, "42.5" -> 42.5. Adidas sizes live as thirds on these stores.
+  function parseSize(raw) {
+    var s = String(raw || '').trim();
+    var frac = s.match(/^(\d+)\s+(\d)\s*\/\s*(\d)$/);
+    if (frac) return Number(frac[1]) + Number(frac[2]) / Number(frac[3]);
+    var n = parseFloat(s.replace(',', '.'));
+    return isNaN(n) ? null : n;
+  }
+
+  // Same rule as the post-purchase offer: exact size, or half a size up.
+  function matches(pairSize, cartSize) {
+    if (pairSize == null || cartSize == null) return false;
+    var d = pairSize - cartSize;
+    if (Math.abs(d) <= 0.2) return true;
+    return d >= 0.3 && d <= 0.7;
+  }
+
+  function money(cents) {
+    return (Math.round(cents) / 100).toLocaleString('he-IL', { maximumFractionDigits: 0 }) + ' \u20AA';
+  }
+
+  function tap(act, extra) {
+    var q = '?act=' + act + '&shop=' + encodeURIComponent(SHOP);
+    for (var k in extra) if (extra[k] != null) q += '&' + k + '=' + encodeURIComponent(extra[k]);
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon(TAP + q);
+      else fetch(TAP + q, { mode: 'no-cors', keepalive: true });
+    } catch (e) {}
+  }
+
+  function pick(cart) {
+    var inCart = {};
+    var sizes = [];
+    (cart.items || []).forEach(function (it) {
+      inCart[it.variant_id] = true;
+      // a shoe line carries a size option; socks and accessories do not
+      var raw = null;
+      (it.options_with_values || []).forEach(function (o) {
+        if (/מידה|size/i.test(o.name)) raw = o.value;
+      });
+      if (raw == null) raw = it.variant_title;
+      var s = parseSize(raw);
+      if (s != null && sizes.indexOf(s) === -1) sizes.push(s);
+    });
+    if (!sizes.length) return [];
+
+    var out = [];
+    DATA.forEach(function (p) {
+      if (out.length >= MAX_CARDS) return;
+      if (inCart[p.id]) return;
+      var ps = parseSize(p.size);
+      for (var i = 0; i < sizes.length; i++) {
+        if (matches(ps, sizes[i])) { out.push(p); return; }
+      }
+    });
+    return out;
+  }
+
+  function build(pairs) {
+    var box = document.createElement('div');
+    box.className = 'ss-hs';
+    box.setAttribute('data-ss-hs', '1');
+
+    // The price comes off the variant, not a constant. It moved 349 -> 299 once already,
+    // and a number typed here would have gone stale without anyone noticing.
+    var low = Math.min.apply(null, pairs.map(function (p) { return p.price; }));
+    var h = document.createElement('div');
+    h.className = 'ss-hs__title';
+    h.innerHTML = (pairs.length > 1
+      ? 'נשארו לנו זוגות בודדים <b>במידה שלך</b> ב-'
+      : 'נשאר לנו זוג אחד <b>במידה שלך</b> ב-') + money(low);
+    box.appendChild(h);
+
+    var row = document.createElement('div');
+    row.className = 'ss-hs__row';
+    box.appendChild(row);
+
+    pairs.forEach(function (p) {
+      var c = document.createElement('div');
+      c.className = 'ss-hs__card';
+
+      if (p.img) {
+        var im = document.createElement('img');
+        im.src = p.img; im.alt = p.title; im.loading = 'lazy';
+        c.appendChild(im);
+      }
+
+      var nm = document.createElement('div');
+      nm.className = 'ss-hs__name';
+      nm.textContent = p.title;
+      c.appendChild(nm);
+
+      var sz = document.createElement('div');
+      sz.className = 'ss-hs__size';
+      sz.textContent = 'מידה ' + p.size;
+      c.appendChild(sz);
+
+      var pr = document.createElement('div');
+      pr.className = 'ss-hs__price';
+      pr.textContent = money(p.price);
+      if (p.compare && p.compare > p.price) {
+        var s = document.createElement('s');
+        s.textContent = money(p.compare);
+        pr.appendChild(s);
+      }
+      c.appendChild(pr);
+
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ss-hs__btn';
+      b.textContent = 'הוספה להזמנה';
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        b.textContent = 'מוסיף...';
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: [{ id: p.id, quantity: 1 }] })
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            tap('add', { size: p.size, vid: p.id });
+            b.textContent = 'נוסף \u2713';
+            lastSig = '';
+            setTimeout(refresh, 400);
+          })
+          .catch(function () {
+            tap('fail', { vid: p.id });
+            b.disabled = false;
+            b.textContent = 'נסה שוב';
+          });
+      });
+      c.appendChild(b);
+
+      row.appendChild(c);
+    });
+
+    return box;
+  }
+
+  // ---- placement -------------------------------------------------------------
+  // The Kaching drawer is plain DOM (no shadow root, no iframe), so we insert a module
+  // of our own right under the cart lines and above Kaching's own upsell carousel.
+  function anchors() {
+    var out = [];
+    var kc = document.querySelector('kaching-cart');
+    if (kc) {
+      var items = kc.querySelector('.kaching-cart-item-container');
+      var mod = items && items.closest('.kaching-cart__module');
+      if (mod) out.push({ el: mod, where: 'after', cls: 'ss-hs--drawer' });
+    }
+    var ctas = document.querySelector('.cart__ctas');
+    if (ctas) out.push({ el: ctas, where: 'before', cls: 'ss-hs--page' });
+    return out;
+  }
+
+  var lastSig = '';
+  var viewed = {};
+  var busy = false;
+
+  function refresh() {
+    if (busy) return;
+    var spots = anchors();
+    if (!spots.length) return;
+    busy = true;
+    fetch('/cart.js', { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (cart) {
+        var pairs = pick(cart);
+        var sig = pairs.map(function (p) { return p.id; }).join(',') + '@' + spots.length;
+        if (sig === lastSig) return;
+        lastSig = sig;
+
+        [].forEach.call(document.querySelectorAll('[data-ss-hs]'), function (n) { n.remove(); });
+        if (!pairs.length) return;
+
+        spots.forEach(function (sp) {
+          var el = build(pairs);
+          el.classList.add(sp.cls);
+          if (sp.where === 'after') sp.el.insertAdjacentElement('afterend', el);
+          else sp.el.insertAdjacentElement('beforebegin', el);
+        });
+
+        var vkey = pairs.map(function (p) { return p.id; }).join(',');
+        if (!viewed[vkey]) {
+          viewed[vkey] = true;
+          tap('view', { size: pairs[0].size, n: pairs.length });
+        }
+      })
+      .catch(function () {})
+      .then(function () { busy = false; });
+  }
+
+  var timer = null;
+  function schedule() { clearTimeout(timer); timer = setTimeout(refresh, 120); }
+
+  // The Kaching drawer repaints constantly (its countdown ticks every second), so a naive
+  // observer would hit /cart.js once a second. Only react when our card is actually gone
+  // from a place that can host it.
+  function watch() {
+    var spots = anchors();
+    if (!spots.length) return;
+    if (document.querySelector('[data-ss-hs]')) return;
+    schedule();
+  }
+
+  new MutationObserver(watch).observe(document.documentElement, { childList: true, subtree: true });
+
+  // A cart write is the only thing that can change which pairs match.
+  var origFetch = window.fetch;
+  window.fetch = function () {
+    var url = arguments[0] && (arguments[0].url || arguments[0]);
+    var p = origFetch.apply(this, arguments);
+    if (typeof url === 'string' && /\/cart\/(add|change|update|clear)/.test(url)) {
+      p.then(function () { lastSig = ''; schedule(); }).catch(function () {});
+    }
+    return p;
+  };
+
+  document.addEventListener('DOMContentLoaded', schedule);
+  schedule();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Home stock cart offer",
+  "settings": []
+}
+{% endschema %}
