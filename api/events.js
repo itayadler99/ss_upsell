@@ -21,12 +21,26 @@ module.exports = async (req, res) => {
   const byShop = {};
   for (const ev of events) {
     const shop = ev.shop || 'unknown';
-    const b = (byShop[shop] = byShop[shop] || { calls: 0, rendered: 0, blank: 0, signOk: 0, signFail: 0 });
+    const b = (byShop[shop] = byShop[shop] || {
+      calls: 0,
+      rendered: 0,
+      blank: 0,
+      signOk: 0,
+      signFail: 0,
+      paint: 0,
+      cartView: 0,
+      cartAdd: 0,
+    });
     if (ev.e === 'offer') {
       b.calls++;
       ev.render ? b.rendered++ : b.blank++;
     } else if (ev.e === 'sign') {
       ev.ok ? b.signOk++ : b.signFail++;
+    } else if (ev.e === 'paint') {
+      b.paint++;
+    } else if (ev.e === 'cart') {
+      if (ev.act === 'view') b.cartView++;
+      else if (ev.act === 'add') b.cartAdd++;
     }
   }
 
