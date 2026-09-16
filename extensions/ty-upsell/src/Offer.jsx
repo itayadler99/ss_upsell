@@ -27,9 +27,21 @@ function money(n) {
   return `${Math.round(Number(n))} ₪`;
 }
 
+// Ten minutes, the length Moldawsky uses in the course. The clock is cosmetic pressure,
+// not a lock: the cart permalink keeps working. What expiry does is remove the buttons,
+// so the screen stops promising something it is no longer presenting.
+const WINDOW_SECONDS = 10 * 60;
+
+function clock(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export default function Offer() {
   const api = useApi();
   const [data, setData] = useState(null);
+  const [left, setLeft] = useState(WINDOW_SECONDS);
 
   useEffect(() => {
     let live = true;
@@ -83,13 +95,41 @@ export default function Offer() {
     if (data) tap('view', null);
   }, [data]);
 
+  // Started only once the offer is on screen, so a slow lookup does not eat the window.
+  useEffect(() => {
+    if (!data) return undefined;
+    const id = setInterval(() => setLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [data]);
+
   if (!data) return null;
+
+  if (left === 0) {
+    return (
+      <BlockStack spacing="tight" border="base" cornerRadius="base" padding="base">
+        <Heading level={2}>ההצעה פגה</Heading>
+        <Text size="small" appearance="subdued">
+          ההזמנה שלכם אושרה כרגיל. הזוגות האלה חוזרים למחיר המלא.
+        </Text>
+      </BlockStack>
+    );
+  }
 
   return (
     <BlockStack spacing="base" border="base" cornerRadius="base" padding="base">
-      <Heading level={2}>יש לנו זוג נוסף במידה {data.boughtSize} שלך</Heading>
+      <Heading level={2}>הצעה חד פעמית: יש לנו זוג נוסף בדיוק במידה {data.boughtSize} שלך</Heading>
+      <Text size="medium" emphasis="bold" appearance="critical">
+        {clock(left)} עד שההצעה המיוחדת תפוג
+      </Text>
+      <Text size="small">
+        מלאי אחרון, זוג אחד מכל דגם. הוסיפו זוג נוסף להזמנה שלכם במחיר חד פעמי של{' '}
+        {money(data.items[0].price)} במקום המחיר המלא.
+      </Text>
+      <Text size="small" emphasis="bold">
+        ההצעה הזו לא תחזור. ברגע שתעזבו את הדף היא נסגרת.
+      </Text>
       <Text size="small" appearance="subdued">
-        מלאי אחרון, זוג אחד מכל דגם. במחיר {money(data.items[0].price)} במקום המחיר המלא.
+        ★★★★★ 4.9
       </Text>
       {data.items.map((item, i) => (
         <BlockStack key={item.id} spacing="tight">
@@ -112,7 +152,7 @@ export default function Offer() {
               </Text>
             </BlockStack>
             <Button kind="primary" to={item.url} onPress={() => tap('add', item)}>
-              קחו אותו
+              הוסיפו להזמנה
             </Button>
           </InlineLayout>
         </BlockStack>
