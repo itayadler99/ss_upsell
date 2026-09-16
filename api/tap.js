@@ -27,10 +27,14 @@ module.exports = async (req, res) => {
   const size = String(req.query.size || '').slice(0, 16);
   const vid = String(req.query.vid || '').slice(0, 24);
   const n = Number(req.query.n) || 0;
+  // Which surface the tap came from. Absent means the cart drawer, the only caller until
+  // the thank-you block shipped; without it the two screens would be indistinguishable in
+  // the log and neither could be judged on its own.
+  const src = req.query.src === 'ty' ? 'ty' : 'cart';
 
   if (ALLOWED_ACTS.has(act) && shop) {
     try {
-      await stock.logEvent({ e: 'cart', act, shop, size, vid, n });
+      await stock.logEvent({ e: src, act, shop, size, vid, n });
     } catch (e) {
       console.log('[tap] log failed', String((e && e.message) || e));
     }

@@ -1,0 +1,16 @@
+api_version = "2025-07"
+
+[[extensions]]
+name = "Home stock - thank you"
+handle = "ty-upsell"
+uid = "9c5691b8-13c4-49e2-84b7-11a1d21bf51e"
+type = "ui_extension"
+
+  [[extensions.targeting]]
+  module = "./src/Thankyou.jsx"
+  target = "purchase.thank-you.block.render"
+
+  [extensions.capabilities]
+  # The offer is built server side from the order's size against the shared sold list,
+  # so the block cannot render without reaching ss-upsell.vercel.app.
+  network_access = true
