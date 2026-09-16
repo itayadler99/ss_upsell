@@ -70,12 +70,14 @@ module.exports = async (req, res) => {
   const key = process.env.HOMESTOCK_WEBHOOK_KEY;
   const dry = Boolean(key && req.query.key === key && req.query.order);
 
-  const orderGid = dry
-    ? `gid://shopify/Order/${String(req.query.order).replace(/\D/g, '')}`
-    : String(body.orderId || '');
-  if (!/^gid:\/\/shopify\/Order\/\d+$/.test(orderGid)) {
+  // The thank-you target hands back gid://shopify/OrderIdentity/<id>, not an Order gid.
+  // The numeric part is the same order, so normalise it instead of rejecting.
+  const rawId = dry ? String(req.query.order || '') : String(body.orderId || '');
+  const num = /^(?:gid:\/\/shopify\/(?:Order|OrderIdentity)\/)?(\d+)$/.exec(rawId.trim());
+  if (!num) {
     return json(res, 400, { render: false, error: 'bad request' });
   }
+  const orderGid = `gid://shopify/Order/${num[1]}`;
 
   let dest = String(req.query.shop || '');
   if (!dry) {

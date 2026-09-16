@@ -10,6 +10,11 @@ type = "ui_extension"
   module = "./src/Thankyou.jsx"
   target = "purchase.thank-you.block.render"
 
+  # Static target - renders without a merchant placing a block in the checkout editor.
+  [[extensions.targeting]]
+  module = "./src/Static.jsx"
+  target = "purchase.thank-you.cart-line-list.render-after"
+
   [extensions.capabilities]
   # The offer is built server side from the order's size against the shared sold list,
   # so the block cannot render without reaching ss-upsell.vercel.app.
