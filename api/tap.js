@@ -1,11 +1,17 @@
 const stock = require('../lib/stock');
 
-// Beacon for the in-cart home-stock offer.
+// Beacon for every home-stock surface: the cart drawer, the thank-you block, and the
+// post-purchase screen.
 //
-// The post-purchase screen is not displayed on these stores - Shopify only vaults a card
-// for Shopify Payments, and 100% of orders here go through PayPlus. See api/px.js for the
-// evidence. The replacement offer lives inside the Kaching cart drawer, which is ours to
-// paint, so this endpoint is the only place that can tell us whether a customer saw it.
+// Corrected 16.9: post-purchase is not limited to Shopify Payments. Zipify's own doc
+// (help.zipify.com/en/articles/4684879) says any direct credit-card processor whose fields
+// sit inside Shopify checkout is supported, and only offsite redirect providers are not.
+// PayPlus ships both - "Native Credit Card Form" is direct and eligible, "Payment Gateway"
+// redirects and is not. About 60% of orders on these stores use the direct one.
+//
+// api/px.js measured paints by routing the offer image through us, which cannot tell
+// "screen never shown" apart from "checkout CSP blocked a third-party image". The
+// post-purchase extension now calls this endpoint from its own render instead.
 //
 // act=view  the card was painted, once per cart signature per session
 // act=add   the customer added the pair
@@ -30,7 +36,7 @@ module.exports = async (req, res) => {
   // Which surface the tap came from. Absent means the cart drawer, the only caller until
   // the thank-you block shipped; without it the two screens would be indistinguishable in
   // the log and neither could be judged on its own.
-  const src = req.query.src === 'ty' ? 'ty' : 'cart';
+  const src = req.query.src === 'ty' ? 'ty' : req.query.src === 'pp' ? 'pp' : 'cart';
 
   if (ALLOWED_ACTS.has(act) && shop) {
     try {

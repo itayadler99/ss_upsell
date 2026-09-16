@@ -68,9 +68,36 @@ function Timer({ expired, clock }) {
   );
 }
 
+// Fired from the component that paints, not from the offer image.
+//
+// api/px.js tried to measure paints by serving the product image through us, and read zero
+// hits against hundreds of ShouldRender calls. That was taken as proof the screen is never
+// displayed, and it sent us to the cart drawer for a month. It proved no such thing:
+// checkout pages restrict img-src, so a blocked third-party image and a page that never
+// rendered leave the same trace. A call the extension makes itself cannot be confused.
+function beacon(act, offer) {
+  try {
+    const first = (offer && offer.items && offer.items[0]) || null;
+    const q = new URLSearchParams({
+      act,
+      src: 'pp',
+      shop: (offer && offer.shop) || '',
+      size: String((first && first.displaySize) || ''),
+      vid: String((first && first.id) || ''),
+      n: String((offer && offer.items && offer.items.length) || 0),
+    });
+    fetch(`${API}/api/tap?${q}`, { keepalive: true });
+  } catch (e) {
+    /* a beacon must never break the screen it is measuring */
+  }
+}
+
 function App() {
   const input = useExtensionInput();
   const offer = input.storage && input.storage.initialData;
+  useEffect(() => {
+    if (offer) beacon('view', offer);
+  }, [offer]);
   if (!offer) return null;
   if (offer.kind === 'homestock') {
     return offer.items && offer.items.length ? <HomeStock input={input} offer={offer} /> : null;
@@ -105,6 +132,7 @@ function HomeStock({ input, offer }) {
 
   async function accept() {
     setBusy(true);
+    beacon('add', offer);
     try {
       const stockIds = second ? [first.id, second.id] : [first.id];
       const res = await fetch(`${API}/api/sign`, {
@@ -240,6 +268,7 @@ function SecondPair({ input, offer }) {
 
   async function accept() {
     setBusy(true);
+    beacon('add', offer);
     try {
       const res = await fetch(`${API}/api/sign`, {
         method: 'POST',
