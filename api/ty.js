@@ -12,12 +12,12 @@ const { verify, json } = require('../lib/offer');
 // The thank-you page has no such dependency. It is rendered for every order regardless of
 // gateway, so this is the only screen after payment that can carry the offer. What it
 // cannot do is charge the saved card: there is no card. So the offer here links out to a
-// fresh checkout pre-filled with the pair, at the outlet price of 299.
+// fresh checkout pre-filled with the pair, at the outlet price of 249.
 //
 // That price is why this endpoint reads outlet_map.json rather than stock.json. stock.json
 // points at the catalogue variant, which is still listed at its full price and only drops
-// to 299 through a changeset discount that a plain cart permalink cannot carry. The outlet
-// listing is a second product whose variant is priced 299 outright, so a permalink to it
+// to 249 through a changeset discount that a plain cart permalink cannot carry. The outlet
+// listing is a second product whose variant is priced 249 outright, so a permalink to it
 // needs no discount code and cannot be re-priced by anything in the cart.
 
 const MIN_SHOE_PRICE = 200;
