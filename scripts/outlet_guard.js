@@ -3,8 +3,9 @@
 // The outlet listings carry no inventory count - the admin token has no inventory scope,
 // so a listing can be bought over and over. The same pair also sits on the outlet page of
 // both stores and inside the post-purchase offer, which is three ways to sell a shoe that
-// exists once. This closes all three: the moment a pair is bought anywhere, both outlet
-// listings go to draft and the pair joins the shared sold list the offer screen reads.
+// exists once. This closes all three: the moment a pair is bought anywhere, that size is
+// removed from both outlet listings (drafted if it was the last size) and the pair joins
+// the shared sold list the offer screen reads.
 //
 // Polls rather than listens: a webhook would be faster, but registering one needs the app
 // to be re-authorised, and a five minute window on a pair that sells a few times a month
@@ -43,6 +44,23 @@ async function draft(shopDomain, productId) {
     body: JSON.stringify({ product: { id: productId, status: 'draft' } }),
   });
   if (!r.ok) throw new Error(`draft ${shopDomain} ${productId} ${r.status} ${await r.text()}`);
+}
+
+// One outlet listing can hold several sizes of the same model, each its own physical pair.
+// Selling one size must not hide the others, so only the sold variant goes. Drafting the
+// whole product is kept for the last size, since Shopify will not delete a product's only
+// variant.
+async function retire(shopDomain, productId, variantId) {
+  const cfg = resolve(shopDomain);
+  const headers = { 'X-Shopify-Access-Token': process.env[cfg.tokenEnv], 'Content-Type': 'application/json' };
+  const base = `https://${cfg.admin}/admin/api/2024-01/products/${productId}`;
+  const g = await fetch(`${base}/variants.json?fields=id`, { headers });
+  if (!g.ok) throw new Error(`variants ${shopDomain} ${productId} ${g.status} ${await g.text()}`);
+  const ids = ((await g.json()).variants || []).map((v) => String(v.id));
+  if (!ids.includes(String(variantId))) return; // already removed on an earlier run
+  if (ids.length <= 1) return draft(shopDomain, productId);
+  const d = await fetch(`${base}/variants/${variantId}.json`, { method: 'DELETE', headers });
+  if (!d.ok) throw new Error(`delete variant ${shopDomain} ${variantId} ${d.status} ${await d.text()}`);
 }
 
 async function tell(text) {
@@ -94,9 +112,9 @@ async function tell(text) {
     // no stock count and would otherwise keep taking orders for a shoe that is gone.
     for (const [shop, o] of Object.entries(f.pair.outlet)) {
       try {
-        await draft(shop, o.productId);
+        await retire(shop, o.productId, o.variantId);
       } catch (e) {
-        console.error('draft failed', shop, o.productId, String(e.message || e));
+        console.error('retire failed', shop, o.productId, String(e.message || e));
       }
     }
     if (!already.has(f.pair.id)) {
