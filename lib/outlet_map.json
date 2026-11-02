@@ -1176,5 +1176,24 @@
         "size": 43.0
       }
     }
+  },
+  {
+    "id": "on-cloud-gray-white-black-41_0",
+    "title": "On Cloud Gray White Black",
+    "size": 41.0,
+    "outlet": {
+      "station": {
+        "productId": 9152070484139,
+        "title": "On Cloud Gray White Black",
+        "handle": "on-cloud-gray-white-black-outlet",
+        "status": "ACTIVE",
+        "image": "https://cdn.shopify.com/s/files/1/0686/4866/5259/files/AAC647DD-1ED8-44C4-B978-195161967B7D_3a85b633-0615-49ce-a384-fb68dc14e72e.jpg?v=1793616123",
+        "variantId": 48499625951403,
+        "variantTitle": "41",
+        "price": "249.00",
+        "compareAt": "469.00",
+        "size": 41.0
+      }
+    }
   }
 ]
