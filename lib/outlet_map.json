@@ -1195,5 +1195,43 @@
         "size": 41.0
       }
     }
+  },
+  {
+    "id": "new-balance-204l-mesh-orange-43_0",
+    "title": "New Balance 204L Mesh Orange",
+    "size": 43.0,
+    "outlet": {
+      "station": {
+        "productId": 9178535493803,
+        "title": "New Balance 204L Mesh Orange",
+        "handle": "new-balance-204l-mesh-orange-outlet",
+        "status": "ACTIVE",
+        "image": "https://cdn.shopify.com/s/files/1/0686/4866/5259/files/194D0BCC-3A68-4A50-8CFB-6C68824E300E_19eb10dd-722a-40db-9a47-9e433e108feb.jpg?v=1794406307",
+        "variantId": 48587709251755,
+        "variantTitle": "43",
+        "price": "249.00",
+        "compareAt": "449.00",
+        "size": 43.0
+      }
+    }
+  },
+  {
+    "id": "new-balance-204l-mushroom-arid-43_0",
+    "title": "New Balance 204L Mushroom Arid",
+    "size": 43.0,
+    "outlet": {
+      "station": {
+        "productId": 9178535788715,
+        "title": "New Balance 204L Mushroom Arid",
+        "handle": "new-balance-204l-mushroom-arid-outlet",
+        "status": "ACTIVE",
+        "image": "https://cdn.shopify.com/s/files/1/0686/4866/5259/files/A31C2078-2A5B-41DF-9324-B87409CED418_b3ce3eaa-8933-4e00-a611-c660938d5334.jpg?v=1794406313",
+        "variantId": 48587709513899,
+        "variantTitle": "43",
+        "price": "249.00",
+        "compareAt": "449.00",
+        "size": 43.0
+      }
+    }
   }
 ]
