@@ -18,6 +18,7 @@ const { SHOPS, resolve } = require('../lib/shops');
 const MAP = require('../lib/outlet_map.json');
 const ME = '972542383620';
 const LOOKBACK_HOURS = 6;
+const MAX_LOOKBACK_DAYS = 7;
 const STATE = path.join(process.env.HOME, '.ss_outlet_guard.json');
 
 const variantIndex = new Map();
@@ -81,11 +82,19 @@ async function tell(text) {
 }
 
 (async () => {
-  const since = new Date(Date.now() - LOOKBACK_HOURS * 3600 * 1000).toISOString();
+  // Scan from the last successful run, not a fixed window: launchd does not run while the
+  // Mac sleeps, so a sale during a long sleep fell outside the 6h window and was never retired
+  // (#1322, 8.11). `handled` dedupes the overlap.
+  const startedAt = Date.now();
+  const saved = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
+  const from = saved.lastOk
+    ? Math.max(saved.lastOk - 3600 * 1000, startedAt - MAX_LOOKBACK_DAYS * 86400 * 1000)
+    : startedAt - LOOKBACK_HOURS * 3600 * 1000;
+  const since = new Date(from).toISOString();
   const already = new Set(await stock.soldIds());
-  const handled = new Set(
-    fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')).handled || [] : []
-  );
+  const handled = new Set(saved.handled || []);
+  const save = () =>
+    fs.writeFileSync(STATE, JSON.stringify({ handled: [...handled].slice(-500), lastOk: startedAt }));
 
   const found = [];
   for (const domain of Object.keys(SHOPS)) {
@@ -102,7 +111,8 @@ async function tell(text) {
   }
 
   if (!found.length) {
-    console.log('no outlet sales in the last', LOOKBACK_HOURS, 'hours');
+    save();
+    console.log('no outlet sales since', since);
     return;
   }
 
@@ -141,7 +151,7 @@ async function tell(text) {
     handled.add(f.tag);
   }
 
-  fs.writeFileSync(STATE, JSON.stringify({ handled: [...handled].slice(-500) }));
+  save();
   const text = `נמכר זוג מהבית - צריך לשלוח\n\n${lines.join('\n\n')}`;
   console.log(text);
   console.log('whatsapp:', await tell(text));
